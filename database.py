@@ -10,30 +10,74 @@ def create_table():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS summaries (
+         CREATE TABLE IF NOT EXISTS summaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            video_id TEXT,
+            video_id TEXT UNIQUE,
             video_title TEXT,
             transcript TEXT,
             summary TEXT,
-            date_generated TEXT
+            generated_on TEXT
         )
     ''')
     conn.commit()
     conn.close()
 
-# Function to save summary details
-def save_summary_to_db(video_id, title, transcript, summary):
+def save_summary_to_db(video_id, title, transcript_text, summary):
     conn = get_db_connection()
     cursor = conn.cursor()
     generated_on = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    summary_data = (video_id, title, transcript, summary,generated_on )
-    cursor.execute('''
-        INSERT INTO summaries (video_id, title, transcript, summary, generated_on)
-        VALUES (?, ?, ?, ?, ?)
-    ''', summary_data)
-    conn.commit()
+
+    # Check if the video_id already exists
+    cursor.execute("SELECT * FROM summaries WHERE video_id = ?", (video_id,))
+    result = cursor.fetchone()
+
+    if result:
+        # Update the existing record
+        cursor.execute('''
+            UPDATE summaries
+            SET title = ?, transcript = ?, summary = ?, generated_on = ?
+            WHERE video_id = ?
+        ''', (title, transcript_text, summary, generated_on, video_id))
+        conn.commit()
+        print(f"Summary for video_id {video_id} updated.")
+    else:
+        # Insert a new record
+        cursor.execute('''
+            INSERT INTO summaries (video_id, title, transcript, summary, generated_on)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (video_id, title, transcript_text, summary, generated_on))
+        conn.commit()
+        print(f"Summary for video_id {video_id} saved.")
+
     conn.close()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    generated_on = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Check if the video_id already exists
+    cursor.execute("SELECT * FROM summaries WHERE video_id = ?", (video_id,))
+    result = cursor.fetchone()
+
+    if result:
+        # Update the existing record
+        cursor.execute('''
+            UPDATE summaries
+            SET title = ?, transcript = ?, summary = ?, generated_on = ?
+            WHERE video_id = ?
+        ''', (title, transcript_text, summary, generated_on,  video_id))
+        conn.commit()
+        print(f"Summary for video_id {video_id} updated.")
+    else:
+        # Insert a new record
+        cursor.execute('''
+            INSERT INTO summaries (video_id, title, transcript, summary)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (video_id, title, transcript_text, summary))
+        conn.commit()
+        print(f"Summary for video_id {video_id} saved.")
+
+    conn.close()
+
 
 # Function to retrieve all summaries from the database
 def get_summaries_from_db():
